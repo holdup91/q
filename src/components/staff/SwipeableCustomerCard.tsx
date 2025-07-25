@@ -131,7 +131,7 @@ export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
           <HStack justify="center" spacing={8} py={3} opacity={0.7}>
             <HStack spacing={2}>
               <Box w={2} h={2} bg="red.400" borderRadius="full" />
-              <Text fontSize="xs" color="gray.600" fontWeight="medium">Skip</Text>
+              <Text fontSize="xs" color="gray.600" fontWeight="medium">Cancel</Text>
             </HStack>
             <HStack spacing={2}>
               <Box w={2} h={2} bg="orange.400" borderRadius="full" />
@@ -163,7 +163,7 @@ export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
                 cursor: 'pointer'
               }}
             >
-              Skip
+              Cancel
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05, y: -2 }}

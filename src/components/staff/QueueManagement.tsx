@@ -153,33 +153,35 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
               </motion.div>
             </HStack>
             <HStack spacing={1}>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <IconButton
-                  aria-label="Parked"
-                  icon={<Archive size={12} />}
-                  size="sm"
-                  variant="outline"
-                  onClick={onParkedOpen}
-                />
-              </motion.div>
-              {parkedCustomers.length > 0 && (
-                <Badge
-                  position="absolute"
-                  top="-1"
-                  right="-1"
-                  bg="red.500"
-                  color="white"
-                  borderRadius="full"
-                  fontSize="xs"
-                  minW="5"
-                  h="5"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  {parkedCustomers.length}
-                </Badge>
-              )}
+              <Box position="relative">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <IconButton
+                    aria-label="Parked"
+                    icon={<Archive size={12} />}
+                    size="sm"
+                    variant="outline"
+                    onClick={onParkedOpen}
+                  />
+                </motion.div>
+                {parkedCustomers.length > 0 && (
+                  <Badge
+                    position="absolute"
+                    top="-1"
+                    right="-1"
+                    bg="red.500"
+                    color="white"
+                    borderRadius="full"
+                    fontSize="xs"
+                    minW="5"
+                    h="5"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    {parkedCustomers.length}
+                  </Badge>
+                )}
+              </Box>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <IconButton
                   aria-label="Undo"
