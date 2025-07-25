@@ -166,7 +166,6 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                       </Text>
                     </VStack>
                   )}
-                  </Text>
                 </VStack>
               </VStack>
             </CardBody>
