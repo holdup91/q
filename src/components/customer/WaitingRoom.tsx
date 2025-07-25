@@ -156,9 +156,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                 
                 {/* Status Info */}
                 <VStack spacing={2}>
-                  <Heading size="lg" color="black">
-                    {queuePosition === 1 ? "You're next!" : `${queuePosition - 1} ahead of you`}
-                  </Heading>
+
                   <Text color="gray.600">
                     Estimated wait: {estimatedWaitTime} minutes
                   </Text>
