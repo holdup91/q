@@ -117,11 +117,11 @@ export const mockMiniQuests: MiniQuest[] = [
   },
   {
     id: '3',
-    title: 'Invite a Friend',
-    description: 'Share your queue experience',
-    xpReward: 100,
+    title: 'NBA Trivia Quiz',
+    description: 'Test your basketball knowledge',
+    xpReward: 60,
     completed: false,
-    icon: '👥'
+    icon: '🏀'
   },
   {
     id: '4',

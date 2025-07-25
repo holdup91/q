@@ -33,6 +33,7 @@ interface WaitingRoomProps {
   quests: MiniQuest[];
   queuePosition: number;
   estimatedWaitTime: number;
+  hasGoldenTicket: boolean;
   onCompleteQuest: (questId: string) => void;
   onLeaveQueue: () => void;
   onOpenXPShop: () => void;
@@ -46,6 +47,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
   quests,
   queuePosition,
   estimatedWaitTime,
+  hasGoldenTicket,
   onCompleteQuest,
   onLeaveQueue,
   onOpenXPShop,
@@ -73,21 +75,25 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
         <Box maxW="md" mx="auto" px={4} py={4}>
           <HStack justify="space-between">
             <VStack spacing={0} flex={1} textAlign="center">
-              <Heading size="xl" color="black">
+              <Heading 
+                size="xl" 
+                color={hasGoldenTicket ? "yellow.500" : "black"}
+                textShadow={hasGoldenTicket ? "0 0 10px rgba(255, 215, 0, 0.5)" : "none"}
+              >
                 {customer.ticketNumber}
               </Heading>
               <Text fontSize="sm" color="gray.500">
                 Your ticket number
               </Text>
             </VStack>
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <IconButton
-                aria-label="Leave queue"
-                icon={<X size={20} />}
-                variant="ghost"
-                onClick={onLeaveOpen}
-              />
-            </motion.div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onLeaveOpen}
+              colorScheme="red"
+            >
+              Leave Queue
+            </Button>
           </HStack>
         </Box>
       </Box>
@@ -118,9 +124,10 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                     inset={0}
                     borderRadius="full"
                     border="4px solid"
-                    borderColor="black"
+                    borderColor={hasGoldenTicket ? "yellow.400" : "black"}
+                    boxShadow={hasGoldenTicket ? "0 0 20px rgba(255, 215, 0, 0.3)" : "none"}
                     style={{
-                      clipPath: `polygon(50% 50%, 50% 0%, ${50 + (50 - queuePosition * 10)}% 0%, ${50 + (50 - queuePosition * 10)}% 100%, 50% 100%)`
+                      clipPath: `polygon(50% 50%, 50% 0%, ${50 + (50 - (queuePosition - 1) * 10)}% 0%, ${50 + (50 - (queuePosition - 1) * 10)}% 100%, 50% 100%)`
                     }}
                     transition="all 1s ease-out"
                   />
@@ -132,11 +139,16 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                     justifyContent="center"
                   >
                     <VStack spacing={0}>
-                      <Text fontSize="3xl" fontWeight="bold" color="black">
-                        {animatedPosition}
+                      <Text 
+                        fontSize="3xl" 
+                        fontWeight="bold" 
+                        color={hasGoldenTicket ? "yellow.500" : "black"}
+                        textShadow={hasGoldenTicket ? "0 0 10px rgba(255, 215, 0, 0.5)" : "none"}
+                      >
+                        {queuePosition - 1}
                       </Text>
                       <Text fontSize="xs" color="gray.500">
-                        in queue
+                        ahead of you
                       </Text>
                     </VStack>
                   </Box>
@@ -159,7 +171,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                     <Text>Your turn</Text>
                   </HStack>
                   <Progress
-                    value={Math.max(10, 100 - (queuePosition * 15))}
+                    value={Math.max(10, 100 - ((queuePosition - 1) * 15))}
                     colorScheme="gray"
                     bg="gray.200"
                     borderRadius="full"
@@ -224,6 +236,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                     const getQuestAction = (title: string) => {
                       if (title.includes('Video')) return () => onOpenMiniQuest('watch-video');
                       if (title.includes('Survey')) return () => onOpenMiniQuest('complete-survey');
+                      if (title.includes('NBA')) return () => onOpenMiniQuest('nba-trivia');
                       if (title.includes('Social')) return () => onOpenMiniQuest('follow-social');
                       return () => onCompleteQuest(quest.id);
                     };

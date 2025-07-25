@@ -10,6 +10,7 @@ import { XPShop } from './components/customer/XPShop';
 import { WatchVideo } from './components/customer/miniquest/WatchVideo';
 import { CompleteSurvey } from './components/customer/miniquest/CompleteSurvey';
 import { FollowSocial } from './components/customer/miniquest/FollowSocial';
+import { NBATrivia } from './components/customer/miniquest/NBATrivia';
 import { useToast } from '@chakra-ui/react';
 
 function App() {
@@ -27,6 +28,10 @@ function App() {
   const [level, setLevel] = useState(1);
   const [actionHistory, setActionHistory] = useState<any[]>([]);
   const [initialEstimatedWait, setInitialEstimatedWait] = useState(0);
+  const [initialAheadCount, setInitialAheadCount] = useState(0);
+  const [currentEstimatedWait, setCurrentEstimatedWait] = useState(0);
+  const [currentAheadCount, setCurrentAheadCount] = useState(0);
+  const [hasGoldenTicket, setHasGoldenTicket] = useState(false);
   
   const toast = useToast();
 
@@ -80,12 +85,11 @@ function App() {
   };
 
   const handleSkipCustomer = (customer: Customer) => {
-    setActionHistory(prev => [...prev, { type: 'skip', customer, timestamp: Date.now() }]);
-    const updatedCustomers = customers.filter(c => c.id !== customer.id);
-    updatedCustomers.push({ ...customer, waitTime: customer.waitTime + 5 });
-    setCustomers(updatedCustomers);
+    setActionHistory(prev => [...prev, { type: 'cancel', customer, timestamp: Date.now() }]);
+    setCustomers(prev => prev.filter(c => c.id !== customer.id));
+    updateQueueStats();
     toast({
-      title: `${customer.name} has been moved to back of queue`,
+      title: `${customer.name}'s ticket has been cancelled (no-show)`,
       status: 'info',
       duration: 3000,
       isClosable: true,
@@ -149,7 +153,11 @@ function App() {
   // Customer functions
   const handleConfirmJoin = () => {
     const estimatedWait = getCurrentQueue().avgWaitTime + Math.floor(Math.random() * 10);
+    const aheadCount = getCurrentQueue().waiting - 1;
     setInitialEstimatedWait(estimatedWait);
+    setInitialAheadCount(aheadCount);
+    setCurrentEstimatedWait(estimatedWait);
+    setCurrentAheadCount(aheadCount);
     
     const newCustomer: Customer = {
       id: Date.now().toString(),
@@ -194,6 +202,46 @@ function App() {
     if (!reward || currentXP < reward.cost) return;
     
     setCurrentXP(prev => prev - reward.cost);
+    
+    // Apply reward effects
+    switch (rewardId) {
+      case '1': // 10% Service Discount
+        toast({
+          title: '10% discount applied to your next service!',
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+        break;
+      case '2': // Skip 3 Places
+        setCurrentAheadCount(prev => Math.max(0, prev - 3));
+        setCurrentEstimatedWait(prev => Math.max(1, prev - 9)); // Assume 3 minutes per person
+        toast({
+          title: 'You skipped 3 places in the queue!',
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+        break;
+      case '3': // Golden Ticket Skin
+        setHasGoldenTicket(true);
+        toast({
+          title: 'Golden ticket skin activated!',
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+        break;
+      case '4': // Free Coffee Voucher
+        toast({
+          title: 'Free coffee voucher added to your account!',
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+        break;
+    }
+    
     toast({
       title: `${reward.title} purchased!`,
       status: 'success',
@@ -238,11 +286,11 @@ function App() {
 
   const getQueuePosition = () => {
     if (!currentCustomer) return 0;
-    const queueCustomers = customers.filter(c => c.queueId === selectedQueueId);
-    const waitingCustomers = queueCustomers
-      .filter(c => c.status === 'waiting')
-      .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime());
-    return waitingCustomers.findIndex(c => c.id === currentCustomer.id) + 1;
+    return currentAheadCount + 1;
+  };
+
+  const getEstimatedWait = () => {
+    return currentEstimatedWait;
   };
 
   // Update queue stats when customers change
@@ -250,12 +298,18 @@ function App() {
     updateQueueStats();
   }, [customers]);
 
-  // Update customer wait time
+  // Update customer wait time and queue progression
   useEffect(() => {
     const interval = setInterval(() => {
       if (currentCustomer) {
         const updatedWaitTime = Math.floor((Date.now() - currentCustomer.joinedAt.getTime()) / 1000 / 60);
         setCurrentCustomer(prev => prev ? { ...prev, waitTime: updatedWaitTime } : null);
+        
+        // Simulate queue progression (every 3 minutes on average)
+        if (updatedWaitTime > 0 && updatedWaitTime % 3 === 0 && currentAheadCount > 0) {
+          setCurrentAheadCount(prev => Math.max(0, prev - 1));
+          setCurrentEstimatedWait(prev => Math.max(1, prev - 3));
+        }
       }
     }, 60000); // Update every minute
 
@@ -311,7 +365,8 @@ function App() {
             level={level}
             quests={miniQuests}
             queuePosition={getQueuePosition()}
-            estimatedWaitTime={initialEstimatedWait}
+            estimatedWaitTime={getEstimatedWait()}
+            hasGoldenTicket={hasGoldenTicket}
             onCompleteQuest={handleCompleteQuest}
             onLeaveQueue={handleLeaveQueue}
             onOpenXPShop={() => setCurrentView('xp-shop')}
@@ -356,6 +411,17 @@ function App() {
           <FollowSocial
             onComplete={() => {
               handleCompleteQuest('4'); // Social media quest
+              setCurrentView('waiting-room');
+            }}
+            onBack={() => setCurrentView('waiting-room')}
+          />
+        );
+      
+      case 'nba-trivia':
+        return (
+          <NBATrivia
+            onComplete={() => {
+              handleCompleteQuest('3'); // NBA trivia quest
               setCurrentView('waiting-room');
             }}
             onBack={() => setCurrentView('waiting-room')}

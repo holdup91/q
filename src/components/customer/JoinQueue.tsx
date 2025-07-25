@@ -53,9 +53,9 @@ export const JoinQueue: React.FC<JoinQueueProps> = ({
             <div className="text-center">
               <div className="flex items-center justify-center space-x-1 text-gray-500 mb-1">
                 <Users size={16} />
-                <span className="text-sm">In Queue</span>
+                <span className="text-sm">Ahead of You</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{queue.waiting}</p>
+              <p className="text-2xl font-bold text-gray-900">{queue.waiting - 1}</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center space-x-1 text-gray-500 mb-1">

@@ -39,4 +39,4 @@ export interface XPReward {
 }
 
 export type UserType = 'staff' | 'customer';
-export type View = 'home' | 'queues-list' | 'queue-management' | 'join-queue' | 'waiting-room' | 'xp-shop' | 'leave-queue' | 'watch-video' | 'complete-survey' | 'follow-social';
+export type View = 'home' | 'queues-list' | 'queue-management' | 'join-queue' | 'waiting-room' | 'xp-shop' | 'leave-queue' | 'watch-video' | 'complete-survey' | 'follow-social' | 'nba-trivia';
