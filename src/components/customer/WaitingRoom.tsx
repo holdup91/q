@@ -107,75 +107,67 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            bg={hasGoldenTicket ? "linear-gradient(135deg, #ffd700, #ffed4e)" : "white"}
+            border={hasGoldenTicket ? "2px solid #ffd700" : "1px solid"}
+            borderColor={hasGoldenTicket ? "yellow.400" : "gray.200"}
+            boxShadow={hasGoldenTicket ? "0 0 30px rgba(255, 215, 0, 0.3)" : "md"}
           >
             <CardBody textAlign="center" py={8}>
               <VStack spacing={6}>
-                {/* Position Circle */}
-                <Box position="relative" w={32} h={32}>
-                  <Box
-                    position="absolute"
-                    inset={0}
-                    borderRadius="full"
-                    border="4px solid"
-                    borderColor="gray.200"
-                  />
-                  <Box
-                    position="absolute"
-                    inset={0}
-                    borderRadius="full"
-                    border="4px solid"
-                    borderColor={hasGoldenTicket ? "yellow.400" : "black"}
-                    boxShadow={hasGoldenTicket ? "0 0 20px rgba(255, 215, 0, 0.3)" : "none"}
-                    style={{
-                      clipPath: `polygon(50% 50%, 50% 0%, ${50 + (50 - (queuePosition - 1) * 10)}% 0%, ${50 + (50 - (queuePosition - 1) * 10)}% 100%, 50% 100%)`
-                    }}
-                    transition="all 1s ease-out"
-                  />
-                  <Box
-                    position="absolute"
-                    inset={0}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <VStack spacing={0}>
+                {/* Status Info */}
+                <VStack spacing={2}>
+                  {queuePosition === 1 ? (
+                    <VStack spacing={2}>
+                      <Text 
+                        fontSize="4xl" 
+                        fontWeight="bold" 
+                        color={hasGoldenTicket ? "yellow.600" : "green.600"}
+                        textShadow={hasGoldenTicket ? "0 0 10px rgba(255, 215, 0, 0.5)" : "none"}
+                      >
+                        YOUR TURN NOW!
+                      </Text>
+                      <Text color="gray.600" fontSize="lg">
+                        Please proceed to the counter
+                      </Text>
+                    </VStack>
+                  ) : queuePosition === 2 ? (
+                    <VStack spacing={2}>
                       <Text 
                         fontSize="3xl" 
                         fontWeight="bold" 
-                        color={hasGoldenTicket ? "yellow.500" : "black"}
+                        color={hasGoldenTicket ? "yellow.600" : "orange.600"}
+                        textShadow={hasGoldenTicket ? "0 0 10px rgba(255, 215, 0, 0.5)" : "none"}
+                      >
+                        You are the next one
+                      </Text>
+                      <Text color="gray.600">
+                        Get ready, you're up next!
+                      </Text>
+                    </VStack>
+                  ) : (
+                    <VStack spacing={2}>
+                      <Text 
+                        fontSize="5xl" 
+                        fontWeight="bold" 
+                        color={hasGoldenTicket ? "yellow.600" : "black"}
                         textShadow={hasGoldenTicket ? "0 0 10px rgba(255, 215, 0, 0.5)" : "none"}
                       >
                         {queuePosition - 1}
                       </Text>
-                      <Text fontSize="xs" color="gray.500">
+                      <Text 
+                        fontSize="xl" 
+                        color={hasGoldenTicket ? "yellow.700" : "gray.600"}
+                        fontWeight="medium"
+                      >
                         ahead of you
                       </Text>
+                      <Text color="gray.600" fontSize="lg">
+                        Estimated wait: {estimatedWaitTime} minutes
+                      </Text>
                     </VStack>
-                  </Box>
-                </Box>
-                
-                {/* Status Info */}
-                <VStack spacing={2}>
-
-                  <Text color="gray.600">
-                    Estimated wait: {estimatedWaitTime} minutes
+                  )}
                   </Text>
                 </VStack>
-                
-                {/* Progress Bar */}
-                <Box w="full">
-                  <HStack justify="space-between" fontSize="xs" color="gray.500" mb={2}>
-                    <Text>Joined</Text>
-                    <Text>Your turn</Text>
-                  </HStack>
-                  <Progress
-                    value={Math.max(10, 100 - ((queuePosition - 1) * 15))}
-                    colorScheme="gray"
-                    bg="gray.200"
-                    borderRadius="full"
-                    size="sm"
-                  />
-                </Box>
               </VStack>
             </CardBody>
           </MotionCard>

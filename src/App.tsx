@@ -32,6 +32,8 @@ function App() {
   const [currentEstimatedWait, setCurrentEstimatedWait] = useState(0);
   const [currentAheadCount, setCurrentAheadCount] = useState(0);
   const [hasGoldenTicket, setHasGoldenTicket] = useState(false);
+  const [queueStartTime, setQueueStartTime] = useState<Date | null>(null);
+  const [timePerPerson, setTimePerPerson] = useState(0);
   
   const toast = useToast();
 
@@ -154,10 +156,14 @@ function App() {
   const handleConfirmJoin = () => {
     const estimatedWait = getCurrentQueue().avgWaitTime + Math.floor(Math.random() * 10);
     const aheadCount = getCurrentQueue().waiting - 1;
+    const timePerPersonCalc = aheadCount > 0 ? estimatedWait / aheadCount : 0;
+    
     setInitialEstimatedWait(estimatedWait);
     setInitialAheadCount(aheadCount);
     setCurrentEstimatedWait(estimatedWait);
     setCurrentAheadCount(aheadCount);
+    setQueueStartTime(new Date());
+    setTimePerPerson(timePerPersonCalc);
     
     const newCustomer: Customer = {
       id: Date.now().toString(),
@@ -214,10 +220,16 @@ function App() {
         });
         break;
       case '2': // Skip 3 Places
-        setCurrentAheadCount(prev => Math.max(0, prev - 3));
-        setCurrentEstimatedWait(prev => Math.max(1, prev - 9)); // Assume 3 minutes per person
+        const skipAmount = Math.min(3, currentAheadCount);
+        setCurrentAheadCount(prev => Math.max(0, prev - skipAmount));
+        setCurrentEstimatedWait(prev => Math.max(0, prev - (skipAmount * timePerPerson)));
+        
+        // Update the initial counts to maintain simulation accuracy
+        setInitialAheadCount(prev => Math.max(0, prev - skipAmount));
+        setInitialEstimatedWait(prev => Math.max(0, prev - (skipAmount * timePerPerson)));
+        
         toast({
-          title: 'You skipped 3 places in the queue!',
+          title: `You skipped ${skipAmount} places in the queue!`,
           status: 'success',
           duration: 5000,
           isClosable: true,
@@ -256,6 +268,8 @@ function App() {
       updateQueueStats();
     }
     setCurrentCustomer(null);
+    setQueueStartTime(null);
+    setTimePerPerson(0);
     handleBackToHome();
     toast({
       title: 'Left the queue',
@@ -300,21 +314,33 @@ function App() {
 
   // Update customer wait time and queue progression
   useEffect(() => {
+    if (!currentCustomer || !queueStartTime || currentAheadCount <= 0) return;
+
     const interval = setInterval(() => {
-      if (currentCustomer) {
+      const now = new Date();
+      const elapsedMinutes = Math.floor((now.getTime() - queueStartTime.getTime()) / (1000 * 60));
+      
+      if (timePerPerson > 0) {
+        const expectedPosition = Math.max(0, initialAheadCount - Math.floor(elapsedMinutes / timePerPerson));
+        const expectedWaitTime = Math.max(0, initialEstimatedWait - elapsedMinutes);
+        
+        // Update position and wait time based on simulation
+        if (expectedPosition !== currentAheadCount) {
+          setCurrentAheadCount(expectedPosition);
+        }
+        
+        if (expectedWaitTime !== currentEstimatedWait) {
+          setCurrentEstimatedWait(expectedWaitTime);
+        }
+        
+        // Update customer wait time
         const updatedWaitTime = Math.floor((Date.now() - currentCustomer.joinedAt.getTime()) / 1000 / 60);
         setCurrentCustomer(prev => prev ? { ...prev, waitTime: updatedWaitTime } : null);
-        
-        // Simulate queue progression (every 3 minutes on average)
-        if (updatedWaitTime > 0 && updatedWaitTime % 3 === 0 && currentAheadCount > 0) {
-          setCurrentAheadCount(prev => Math.max(0, prev - 1));
-          setCurrentEstimatedWait(prev => Math.max(1, prev - 3));
-        }
       }
-    }, 60000); // Update every minute
+    }, 30000); // Update every 30 seconds for more responsive simulation
 
     return () => clearInterval(interval);
-  }, [currentCustomer]);
+  }, [currentCustomer, queueStartTime, timePerPerson, initialAheadCount, initialEstimatedWait, currentAheadCount, currentEstimatedWait]);
 
   // Render current view
   const renderCurrentView = () => {
