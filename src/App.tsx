@@ -88,10 +88,10 @@ function App() {
 
   const handleServeCustomer = (customer: Customer) => {
     setActionHistory(prev => [...prev, { type: 'serve', customer, timestamp: Date.now() }]);
-    setCustomers(prev => prev.map(c => 
-      c.id === customer.id ? { ...c, status: 'served' } : c
-    ));
-    updateQueueStats();
+    updateTicket(customer.id, { 
+      status: 'served',
+      served_at: new Date().toISOString()
+    });
     toast({
       title: `${customer.name} has been served`,
       status: 'success',
@@ -102,8 +102,9 @@ function App() {
 
   const handleSkipCustomer = (customer: Customer) => {
     setActionHistory(prev => [...prev, { type: 'cancel', customer, timestamp: Date.now() }]);
-    setCustomers(prev => prev.filter(c => c.id !== customer.id));
-    updateQueueStats();
+    updateTicket(customer.id, { 
+      status: 'cancelled'
+    });
     toast({
       title: `${customer.name}'s ticket has been cancelled (no-show)`,
       status: 'info',
@@ -114,10 +115,9 @@ function App() {
 
   const handleHoldCustomer = (customer: Customer) => {
     setActionHistory(prev => [...prev, { type: 'hold', customer, timestamp: Date.now() }]);
-    setCustomers(prev => prev.map(c => 
-      c.id === customer.id ? { ...c, status: 'parked' } : c
-    ));
-    updateQueueStats();
+    updateTicket(customer.id, { 
+      status: 'parked'
+    });
     toast({
       title: `${customer.name} has been moved to parked list`,
       status: 'info',
@@ -127,10 +127,9 @@ function App() {
   };
 
   const handleRequeueCustomer = (customer: Customer) => {
-    setCustomers(prev => prev.map(c => 
-      c.id === customer.id ? { ...c, status: 'waiting' } : c
-    ));
-    updateQueueStats();
+    updateTicket(customer.id, { 
+      status: 'waiting'
+    });
     toast({
       title: `${customer.name} has been re-queued`,
       status: 'success',
@@ -154,10 +153,9 @@ function App() {
     setActionHistory(prev => prev.slice(0, -1));
     
     // Restore customer state based on action type
-    setCustomers(prev => prev.map(c => 
-      c.id === lastAction.customer.id ? { ...lastAction.customer, status: 'waiting' } : c
-    ));
-    updateQueueStats();
+    updateTicket(lastAction.customer.id, { 
+      status: 'waiting'
+    });
     toast({
       title: 'Action undone',
       status: 'success',
@@ -168,8 +166,12 @@ function App() {
 
   // Customer functions
   const handleConfirmJoin = () => {
-    const estimatedWait = getCurrentQueue().avgWaitTime + Math.floor(Math.random() * 10);
-    const aheadCount = getCurrentQueue().waiting - 1;
+    const currentQueue = getCurrentQueue();
+    if (!currentQueue) return;
+    
+    const waitingTickets = tickets.filter(t => t.status === 'waiting').length;
+    const estimatedWait = currentQueue.avg_service_time * waitingTickets + Math.floor(Math.random() * 10);
+    const aheadCount = waitingTickets;
     const timePerPersonCalc = aheadCount > 0 ? estimatedWait / aheadCount : 0;
     
     setInitialEstimatedWait(estimatedWait);
@@ -179,20 +181,21 @@ function App() {
     setQueueStartTime(new Date());
     setTimePerPerson(timePerPersonCalc);
     
-    const newCustomer: Customer = {
-      id: Date.now().toString(),
-      ticketNumber: `A${String(customers.length + 1).padStart(3, '0')}`,
-      name: 'You',
+    const newTicket = {
+      queue_id: selectedQueueId,
+      ticket_number: `A${String(tickets.length + 1).padStart(3, '0')}`,
+      customer_name: 'You',
       purpose: 'Service request',
-      waitTime: 0,
       status: 'waiting',
-      joinedAt: new Date()
+      priority: 0,
+      estimated_wait_time: estimatedWait,
+      customer_phone: null,
+      customer_email: null
     };
     
-    setCustomers(prev => [...prev, newCustomer]);
-    setCurrentCustomer(newCustomer);
+    // Note: createTicket would be implemented in useTickets hook
+    setCurrentTicket(newTicket as any);
     setCurrentView('waiting-room');
-    updateQueueStats();
     toast({
       title: 'Successfully joined the queue!',
       status: 'success',
@@ -277,11 +280,10 @@ function App() {
   };
 
   const handleLeaveQueue = () => {
-    if (currentCustomer) {
-      setCustomers(prev => prev.filter(c => c.id !== currentCustomer.id));
-      updateQueueStats();
+    if (currentTicket) {
+      updateTicket(currentTicket.id, { status: 'cancelled' });
     }
-    setCurrentCustomer(null);
+    setCurrentTicket(null);
     setQueueStartTime(null);
     setTimePerPerson(0);
     handleBackToHome();
@@ -297,23 +299,12 @@ function App() {
     setCurrentView(questType as View);
   };
 
-  // Helper functions
-  const updateQueueStats = () => {
-    const queueCustomers = customers.filter(c => c.queueId === selectedQueueId);
-    setQueues(prev => prev.map(queue => ({
-      ...queue,
-      waiting: queue.id === selectedQueueId ? queueCustomers.filter(c => c.status === 'waiting').length : queue.waiting,
-      onHold: queue.id === selectedQueueId ? queueCustomers.filter(c => c.status === 'parked').length : queue.onHold,
-      served: queue.id === selectedQueueId ? queueCustomers.filter(c => c.status === 'served').length : queue.served
-    })));
-  };
-
   const getCurrentQueue = () => {
     return queues.find(q => q.id === selectedQueueId) || queues[0];
   };
 
   const getQueuePosition = () => {
-    if (!currentCustomer) return 0;
+    if (!currentTicket) return 0;
     return currentAheadCount + 1;
   };
 
@@ -321,14 +312,9 @@ function App() {
     return currentEstimatedWait;
   };
 
-  // Update queue stats when customers change
-  useEffect(() => {
-    updateQueueStats();
-  }, [customers]);
-
   // Update customer wait time and queue progression
   useEffect(() => {
-    if (!currentCustomer || !queueStartTime || currentAheadCount <= 0) return;
+    if (!currentTicket || !queueStartTime || currentAheadCount <= 0) return;
 
     const interval = setInterval(() => {
       const now = new Date();
@@ -348,13 +334,13 @@ function App() {
         }
         
         // Update customer wait time
-        const updatedWaitTime = Math.floor((Date.now() - currentCustomer.joinedAt.getTime()) / 1000 / 60);
-        setCurrentCustomer(prev => prev ? { ...prev, waitTime: updatedWaitTime } : null);
+        const updatedWaitTime = Math.floor((Date.now() - new Date(currentTicket.joined_at || '').getTime()) / 1000 / 60);
+        setCurrentTicket(prev => prev ? { ...prev, actual_wait_time: updatedWaitTime } : null);
       }
     }, 30000); // Update every 30 seconds for more responsive simulation
 
     return () => clearInterval(interval);
-  }, [currentCustomer, queueStartTime, timePerPerson, initialAheadCount, initialEstimatedWait, currentAheadCount, currentEstimatedWait]);
+  }, [currentTicket, queueStartTime, timePerPerson, initialAheadCount, initialEstimatedWait, currentAheadCount, currentEstimatedWait]);
 
   // Render current view
   const renderCurrentView = () => {
