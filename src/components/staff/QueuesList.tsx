@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Play, Pause, Square, Copy, Users, Clock } from 'lucide-react';
 import type { Database } from '../../lib/supabase';
+import { useTickets } from '../../hooks/useSupabase';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
 
@@ -23,6 +24,18 @@ export const QueuesList: React.FC<QueuesListProps> = ({
   onAccessQueue,
   onCopyLink
 }) => {
+  // Get tickets for all queues to calculate stats
+  const { tickets: allTickets } = useTickets();
+
+  const getQueueStats = (queueId: string) => {
+    const queueTickets = allTickets.filter(ticket => ticket.queue_id === queueId);
+    const totalTickets = queueTickets.length;
+    const servedTickets = queueTickets.filter(ticket => ticket.status === 'served').length;
+    const waitingTickets = queueTickets.filter(ticket => ticket.status === 'waiting').length;
+    
+    return { totalTickets, servedTickets, waitingTickets };
+  };
+
   if (queues.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -68,6 +81,9 @@ export const QueuesList: React.FC<QueuesListProps> = ({
       {/* Content */}
       <div className="max-w-md mx-auto p-4 space-y-4">
         {queues.map((queue) => (
+          (() => {
+            const stats = getQueueStats(queue.id);
+            return (
           <Card key={queue.id} className="space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -85,11 +101,11 @@ export const QueuesList: React.FC<QueuesListProps> = ({
             <div className="flex items-center justify-between py-3 border-t border-gray-100">
               <div className="text-center">
                 <p className="text-xs text-gray-500 mb-1">Served / Total</p>
-                <p className="text-lg font-semibold text-gray-900">{queue.max_capacity}</p>
+                <p className="text-lg font-semibold text-gray-900">{stats.servedTickets} / {stats.totalTickets}</p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-gray-500 mb-1">Avg. Wait</p>
-                <p className="text-lg font-semibold text-gray-900">{queue.avg_service_time}m</p>
+                <p className="text-xs text-gray-500 mb-1">Waiting</p>
+                <p className="text-lg font-semibold text-gray-900">{stats.waitingTickets}</p>
               </div>
             </div>
 
@@ -110,6 +126,8 @@ export const QueuesList: React.FC<QueuesListProps> = ({
               </Button>
             </div>
           </Card>
+            );
+          })()
         ))}
       </div>
     </div>
