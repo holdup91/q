@@ -30,9 +30,8 @@ function App() {
   const [currentTicket, setCurrentTicket] = useState<Customer | null>(null);
   
   // Database hooks
-  const { queues, loading: queuesLoading } = useQueues();
-  const { tickets, loading: ticketsLoading, updateTicket } = useTickets(selectedQueueId || undefined);
   
+  const { tickets, loading: ticketsLoading, updateTicket, createTicket } = useTickets(selectedQueueId || undefined);
   // Local state management
   const [queueStatus, setQueueStatus] = useState<'stopped' | 'paused' | 'active'>('active');
   const [miniQuests, setMiniQuests] = useState<MiniQuest[]>(mockMiniQuests);
@@ -165,7 +164,7 @@ function App() {
   };
 
   // Customer functions
-  const handleConfirmJoin = () => {
+  const handleConfirmJoin = async () => {
     const currentQueue = getCurrentQueue();
     if (!currentQueue) return;
     
@@ -181,7 +180,7 @@ function App() {
     setQueueStartTime(new Date());
     setTimePerPerson(timePerPersonCalc);
     
-    const newTicket = {
+    const newTicketData = {
       queue_id: selectedQueueId,
       ticket_number: `A${String(tickets.length + 1).padStart(3, '0')}`,
       customer_name: 'You',
@@ -193,15 +192,25 @@ function App() {
       customer_email: null
     };
     
-    // Note: createTicket would be implemented in useTickets hook
-    setCurrentTicket(newTicket as any);
-    setCurrentView('waiting-room');
-    toast({
-      title: 'Successfully joined the queue!',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    try {
+      const createdTicket = await createTicket(newTicketData);
+      setCurrentTicket(createdTicket);
+      setCurrentView('waiting-room');
+      toast({
+        title: 'Successfully joined the queue!',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Failed to join queue',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   const handleCompleteQuest = (questId: string) => {
