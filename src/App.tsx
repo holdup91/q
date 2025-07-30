@@ -30,7 +30,7 @@ function App() {
   const [currentTicket, setCurrentTicket] = useState<Customer | null>(null);
   
   // Database hooks
-  
+  const { queues, loading: queuesLoading } = useQueues();
   const { tickets, loading: ticketsLoading, updateTicket, createTicket } = useTickets(selectedQueueId || undefined);
   // Local state management
   const [queueStatus, setQueueStatus] = useState<'stopped' | 'paused' | 'active'>('active');
