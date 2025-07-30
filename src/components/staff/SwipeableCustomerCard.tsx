@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Box, VStack, HStack, Text, Heading, Badge } from '@chakra-ui/react';
 import { motion, PanInfo } from 'framer-motion';
-import { Customer } from '../../types';
+import type { Database } from '../../lib/supabase';
 
 const MotionBox = motion(Box);
 
+type Ticket = Database['public']['Tables']['tickets']['Row'];
+
 interface SwipeableCustomerCardProps {
-  customer: Customer;
+  ticket: Ticket;
   onSwipeRight: () => void; // Serve
   onSwipeLeft: () => void;  // Skip
   onSwipeDown: () => void;  // Hold
@@ -16,7 +18,7 @@ interface SwipeableCustomerCardProps {
 }
 
 export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
-  customer,
+  ticket,
   onSwipeRight,
   onSwipeLeft,
   onSwipeDown,
@@ -91,23 +93,23 @@ export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
             mt={4}
           >
             <Text fontSize="3xl" fontWeight="bold" color="white">
-              {customer.ticketNumber}
+              {ticket.ticket_number}
             </Text>
           </Box>
 
           {/* Customer Name */}
           <VStack spacing={3} align="center">
             <Heading size="2xl" color="gray.800" fontWeight="bold" textAlign="center">
-              {customer.name}
+              {ticket.customer_name}
             </Heading>
             
             {/* Service & Status */}
             <VStack spacing={2} align="center">
               <Text color="gray.600" fontSize="xl" fontWeight="medium" textAlign="center">
-                {customer.purpose}
+                {ticket.purpose}
               </Text>
               <Badge colorScheme="blue" size="lg" px={4} py={2} borderRadius="full" fontSize="md">
-                {customer.status}
+                {ticket.status}
               </Badge>
             </VStack>
           </VStack>
@@ -118,7 +120,7 @@ export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
               Wait time
             </Text>
             <Text fontSize="5xl" fontWeight="bold" color="blue.600" lineHeight="1">
-              {customer.waitTime}
+              {ticket.actual_wait_time}
             </Text>
             <Text fontSize="xl" color="gray.500" fontWeight="medium" mt="-2">
               minutes

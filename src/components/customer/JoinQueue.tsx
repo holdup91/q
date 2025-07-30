@@ -1,11 +1,17 @@
 import React from 'react';
 import { ArrowLeft, MapPin, Clock, Users } from 'lucide-react';
-import { Queue } from '../../types';
+import type { Database } from '../../lib/supabase';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
 
+type Queue = Database['public']['Tables']['queues']['Row'] & {
+  locations?: Database['public']['Tables']['locations']['Row'] & {
+    organizations?: Database['public']['Tables']['organizations']['Row'];
+  };
+};
+
 interface JoinQueueProps {
-  queue: Queue;
+  queue?: Queue;
   onBackToHome: () => void;
   onConfirmJoin: () => void;
 }
@@ -15,7 +21,21 @@ export const JoinQueue: React.FC<JoinQueueProps> = ({
   onBackToHome,
   onConfirmJoin
 }) => {
-  const estimatedWait = queue.avgWaitTime + Math.floor(Math.random() * 10);
+  if (!queue) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Queue not found</h2>
+          <button onClick={onBackToHome} className="text-blue-600 hover:text-blue-800">
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const estimatedWait = queue.avg_service_time * 3 + Math.floor(Math.random() * 10); // Assume 3 people ahead
+  const aheadCount = 3; // Mock data for demo
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,7 +65,7 @@ export const JoinQueue: React.FC<JoinQueueProps> = ({
             <h2 className="text-2xl font-bold text-gray-900 mb-2">{queue.name}</h2>
             <div className="flex items-center justify-center space-x-1 text-gray-600">
               <MapPin size={16} />
-              <span>{queue.location}</span>
+             <span>{queue.locations?.name || 'Unknown Location'}</span>
             </div>
           </div>
 
@@ -55,7 +75,7 @@ export const JoinQueue: React.FC<JoinQueueProps> = ({
                 <Users size={16} />
                 <span className="text-sm">Ahead of You</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{queue.waiting - 1}</p>
+              <p className="text-2xl font-bold text-gray-900">{aheadCount}</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center space-x-1 text-gray-500 mb-1">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { UserType, View, Queue, Customer, MiniQuest, XPReward } from './types';
-import { mockQueues, mockCustomers, mockMiniQuests, mockXPRewards } from './data/mockData';
+import { UserType, View, MiniQuest, XPReward } from './types';
+import { mockMiniQuests, mockXPRewards } from './data/mockData';
 import { HomeScreen } from './components/HomeScreen';
 import { QueuesList } from './components/staff/QueuesList';
 import { QueueManagement } from './components/staff/QueueManagement';
@@ -12,16 +12,28 @@ import { CompleteSurvey } from './components/customer/miniquest/CompleteSurvey';
 import { FollowSocial } from './components/customer/miniquest/FollowSocial';
 import { NBATrivia } from './components/customer/miniquest/NBATrivia';
 import { useToast } from '@chakra-ui/react';
+import { useQueues, useTickets } from './hooks/useSupabase';
+import type { Database } from './lib/supabase';
+
+type Queue = Database['public']['Tables']['queues']['Row'] & {
+  locations?: Database['public']['Tables']['locations']['Row'] & {
+    organizations?: Database['public']['Tables']['organizations']['Row'];
+  };
+};
+
+type Customer = Database['public']['Tables']['tickets']['Row'];
 
 function App() {
   const [userType, setUserType] = useState<UserType | null>(null);
   const [currentView, setCurrentView] = useState<View>('home');
   const [selectedQueueId, setSelectedQueueId] = useState<string | null>(null);
-  const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null);
+  const [currentTicket, setCurrentTicket] = useState<Customer | null>(null);
   
-  // State management
-  const [queues, setQueues] = useState<Queue[]>(mockQueues);
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  // Database hooks
+  const { queues, loading: queuesLoading } = useQueues();
+  const { tickets, loading: ticketsLoading, updateTicket } = useTickets(selectedQueueId || undefined);
+  
+  // Local state management
   const [queueStatus, setQueueStatus] = useState<'stopped' | 'paused' | 'active'>('active');
   const [miniQuests, setMiniQuests] = useState<MiniQuest[]>(mockMiniQuests);
   const [currentXP, setCurrentXP] = useState(125);
@@ -44,7 +56,9 @@ function App() {
       setCurrentView('queues-list');
     } else {
       setCurrentView('join-queue');
-      setSelectedQueueId(mockQueues[0].id); // Default to first queue
+      if (queues.length > 0) {
+        setSelectedQueueId(queues[0].id); // Default to first queue
+      }
     }
   };
 
@@ -52,7 +66,7 @@ function App() {
     setUserType(null);
     setCurrentView('home');
     setSelectedQueueId(null);
-    setCurrentCustomer(null);
+    setCurrentTicket(null);
   };
 
   // Staff functions
@@ -362,7 +376,7 @@ function App() {
         return (
           <QueueManagement
             queue={getCurrentQueue()}
-            customers={customers}
+            tickets={tickets}
             queueStatus={queueStatus}
             onBackToQueues={() => setCurrentView('queues-list')}
             onUpdateQueueStatus={setQueueStatus}
@@ -386,7 +400,7 @@ function App() {
       case 'waiting-room':
         return (
           <WaitingRoom
-            customer={currentCustomer!}
+            customer={currentTicket!}
             currentXP={currentXP}
             level={level}
             quests={miniQuests}
@@ -459,6 +473,17 @@ function App() {
     }
   };
 
+  // Show loading state while data is being fetched
+  if (queuesLoading && userType === 'staff') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading queues...</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="app">
       {renderCurrentView()}

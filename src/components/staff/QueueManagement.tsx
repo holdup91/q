@@ -21,27 +21,35 @@ import {
 } from '@chakra-ui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, Pause, Square, RotateCcw, Archive } from 'lucide-react';
-import { Queue, Customer } from '../../types';
+import type { Database } from '../../lib/supabase';
 import { SwipeableCustomerCard } from './SwipeableCustomerCard';
 
 const MotionBox = motion(Box);
 
+type Queue = Database['public']['Tables']['queues']['Row'] & {
+  locations?: Database['public']['Tables']['locations']['Row'] & {
+    organizations?: Database['public']['Tables']['organizations']['Row'];
+  };
+};
+
+type Ticket = Database['public']['Tables']['tickets']['Row'];
+
 interface QueueManagementProps {
-  queue: Queue;
-  customers: Customer[];
+  queue?: Queue;
+  tickets: Ticket[];
   queueStatus: 'stopped' | 'paused' | 'active';
   onBackToQueues: () => void;
   onUpdateQueueStatus: (status: 'stopped' | 'paused' | 'active') => void;
-  onServeCustomer: (customer: Customer) => void;
-  onSkipCustomer: (customer: Customer) => void;
-  onHoldCustomer: (customer: Customer) => void;
-  onRequeueCustomer: (customer: Customer) => void;
+  onServeCustomer: (ticket: Ticket) => void;
+  onSkipCustomer: (ticket: Ticket) => void;
+  onHoldCustomer: (ticket: Ticket) => void;
+  onRequeueCustomer: (ticket: Ticket) => void;
   onUndoAction: () => void;
 }
 
 export const QueueManagement: React.FC<QueueManagementProps> = ({
   queue,
-  customers,
+  tickets,
   queueStatus,
   onBackToQueues,
   onUpdateQueueStatus,
@@ -53,10 +61,22 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
 }) => {
   const { isOpen: isParkedOpen, onOpen: onParkedOpen, onClose: onParkedClose } = useDisclosure();
   
-  // Filter customers for this specific queue
-  const queueCustomers = customers.filter(c => c.queueId === queue.id);
-  const waitingCustomers = queueCustomers.filter(c => c.status === 'waiting');
-  const parkedCustomers = queueCustomers.filter(c => c.status === 'parked');
+  if (!queue) {
+    return (
+      <Box minH="100vh" bg="gray.50" display="flex" alignItems="center" justifyContent="center">
+        <VStack spacing={4}>
+          <Text fontSize="xl" color="gray.600">Queue not found</Text>
+          <Button onClick={onBackToQueues}>Back to Queues</Button>
+        </VStack>
+      </Box>
+    );
+  }
+  
+  // Filter tickets by status
+  const waitingTickets = tickets.filter(t => t.status === 'waiting');
+  const parkedTickets = tickets.filter(t => t.status === 'parked');
+  const servedTickets = tickets.filter(t => t.status === 'served');
+  const totalTickets = tickets.length;
 
   const getStatusColor = () => {
     switch (queueStatus) {
@@ -96,7 +116,9 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
                   {queue.name}
                 </Heading>
                 <HStack spacing={2} fontSize="xs">
-                  <Text color="gray.500">{queue.location}</Text>
+                  <Text color="gray.500">
+                    {queue.locations?.name || 'Unknown Location'}
+                  </Text>
                   <Text color="gray.300">•</Text>
                   <Badge colorScheme={queueStatus === 'active' ? 'green' : queueStatus === 'paused' ? 'yellow' : 'red'} size="sm">
                     {getStatusText()}
@@ -110,11 +132,11 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
           <HStack justify="space-between" py={2} borderTop="1px solid" borderColor="gray.100">
             <VStack spacing={0}>
               <Text fontSize="xs" color="gray.500">Served / Total</Text>
-              <Text fontSize="sm" fontWeight="semibold">{queue.served} / {queue.served + queue.waiting}</Text>
+              <Text fontSize="sm" fontWeight="semibold">{servedTickets.length} / {totalTickets}</Text>
             </VStack>
             <VStack spacing={0}>
               <Text fontSize="xs" color="gray.500">Avg. Wait</Text>
-              <Text fontSize="sm" fontWeight="semibold">{queue.avgWaitTime}m</Text>
+              <Text fontSize="sm" fontWeight="semibold">{queue.avg_service_time}m</Text>
             </VStack>
           </HStack>
 
@@ -163,7 +185,7 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
                     onClick={onParkedOpen}
                   />
                 </motion.div>
-                {parkedCustomers.length > 0 && (
+                {parkedTickets.length > 0 && (
                   <Badge
                     position="absolute"
                     top="-1"
@@ -178,7 +200,7 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
                     alignItems="center"
                     justifyContent="center"
                   >
-                    {parkedCustomers.length}
+                    {parkedTickets.length}
                   </Badge>
                 )}
               </Box>
@@ -198,7 +220,7 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
 
       {/* Main Content - Card Stack */}
       <Box maxW="md" mx="auto" px={4} pt={6}>
-        {waitingCustomers.length > 0 ? (
+        {waitingTickets.length > 0 ? (
           <MotionBox
             position="relative"
             height="500px"
@@ -207,13 +229,13 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
             transition={{ duration: 0.5 }}
           >
             <AnimatePresence>
-              {waitingCustomers.slice(0, 3).map((customer, index) => (
+              {waitingTickets.slice(0, 3).map((ticket, index) => (
                 <SwipeableCustomerCard
-                  key={customer.id}
-                  customer={customer}
-                  onSwipeRight={() => onServeCustomer(customer)}
-                  onSwipeLeft={() => onSkipCustomer(customer)}
-                  onSwipeDown={() => onHoldCustomer(customer)}
+                  key={ticket.id}
+                  ticket={ticket}
+                  onSwipeRight={() => onServeCustomer(ticket)}
+                  onSwipeLeft={() => onSkipCustomer(ticket)}
+                  onSwipeDown={() => onHoldCustomer(ticket)}
                   isTop={index === 0}
                   zIndex={10 - index}
                   offset={index}
@@ -222,7 +244,7 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
             </AnimatePresence>
             
             {/* Queue Count */}
-            {waitingCustomers.length > 3 && (
+            {waitingTickets.length > 3 && (
               <MotionBox
                 position="absolute"
                 bottom={-8}
@@ -237,7 +259,7 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
                 transition={{ delay: 0.3 }}
               >
                 <Text fontSize="sm" color="gray.600">
-                  +{waitingCustomers.length - 3} more
+                  +{waitingTickets.length - 3} more
                 </Text>
               </MotionBox>
             )}
@@ -278,28 +300,28 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
           <ModalCloseButton />
           <ModalBody pb={6}>
             <VStack spacing={3}>
-              {parkedCustomers.length === 0 ? (
+              {parkedTickets.length === 0 ? (
                 <Text textAlign="center" color="gray.500" py={8}>
                   No parked tickets
                 </Text>
               ) : (
-                parkedCustomers.map((customer) => (
-                  <Card key={customer.id} w="full">
+                parkedTickets.map((ticket) => (
+                  <Card key={ticket.id} w="full">
                     <CardBody>
                       <HStack justify="space-between">
                         <VStack align="start" spacing={1}>
                           <Heading size="sm">
-                            {customer.ticketNumber} - {customer.name}
+                            {ticket.ticket_number} - {ticket.customer_name}
                           </Heading>
                           <Text fontSize="sm" color="gray.500">
-                            {customer.purpose}
+                            {ticket.purpose}
                           </Text>
                           <Text fontSize="xs" color="gray.400">
-                            Waiting {customer.waitTime} minutes
+                            Waiting {ticket.actual_wait_time} minutes
                           </Text>
                         </VStack>
                         <HStack spacing={2}>
-                          <Button size="sm" onClick={() => onRequeueCustomer(customer)}>
+                          <Button size="sm" onClick={() => onRequeueCustomer(ticket)}>
                             Re-queue
                           </Button>
                           <Button size="sm" variant="ghost" onClick={onUndoAction}>

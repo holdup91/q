@@ -21,13 +21,16 @@ import {
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { X, Trophy, Gift, Play, FileText, Users } from 'lucide-react';
-import { Customer, MiniQuest } from '../../types';
+import { MiniQuest } from '../../types';
+import type { Database } from '../../lib/supabase';
 
 const MotionBox = motion(Box);
 const MotionCard = motion(Card);
 
+type Ticket = Database['public']['Tables']['tickets']['Row'];
+
 interface WaitingRoomProps {
-  customer: Customer;
+  customer: Ticket;
   currentXP: number;
   level: number;
   quests: MiniQuest[];
@@ -80,7 +83,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                 color={hasGoldenTicket ? "yellow.500" : "black"}
                 textShadow={hasGoldenTicket ? "0 0 10px rgba(255, 215, 0, 0.5)" : "none"}
               >
-                {customer.ticketNumber}
+                {customer.ticket_number}
               </Heading>
               <Text fontSize="sm" color="gray.500">
                 Your ticket number
