@@ -128,11 +128,10 @@ export const useTickets = (queueId?: string) => {
         .from('tickets')
         .update(updates)
         .eq('id', id)
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
-      return data;
+      return data && data.length > 0 ? data[0] : null;
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to update ticket');
     }
