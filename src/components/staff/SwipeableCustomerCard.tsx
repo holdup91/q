@@ -29,7 +29,7 @@ export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
   const [isExiting, setIsExiting] = useState(false);
 
   const handleDragEnd = (event: any, info: PanInfo) => {
-    if (!isTop) return;
+    if (!isTop || isExiting) return;
 
     const threshold = 100;
     const { x, y } = info.offset;
@@ -37,19 +37,15 @@ export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
     if (Math.abs(x) > threshold && Math.abs(x) > Math.abs(y)) {
       setIsExiting(true);
       if (x > 0) {
-        setTimeout(() => onSwipeRight(), 200);
+        setTimeout(() => onSwipeRight(), 100);
       } else {
-        setTimeout(() => onSwipeLeft(), 200);
+        setTimeout(() => onSwipeLeft(), 100);
       }
     } else if (y > threshold) {
       setIsExiting(true);
-      setTimeout(() => onSwipeDown(), 200);
+      setTimeout(() => onSwipeDown(), 100);
     }
   };
-
-  if (isExiting) {
-    return null;
-  }
 
   return (
     <MotionBox
@@ -63,7 +59,7 @@ export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
       borderColor="blue.100"
       cursor={isTop ? 'grab' : 'default'}
       zIndex={zIndex}
-      drag={isTop}
+      drag={isTop && !isExiting}
       dragConstraints={{ left: -200, right: 200, top: 0, bottom: 200 }}
       dragElastic={0.2}
       onDragEnd={handleDragEnd}
@@ -73,18 +69,19 @@ export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
         rotate: 5,
         boxShadow: '0 20px 30px rgba(0,0,0,0.2)'
       }}
+      initial={{ opacity: 1, scale: 1, x: 0, y: 0, rotate: 0 }}
       exit={{
-        x: isExiting ? (Math.random() > 0.5 ? 300 : -300) : 0,
-        y: isExiting ? -100 : 0,
+        x: Math.random() > 0.5 ? 300 : -300,
+        y: -100,
         opacity: 0,
         scale: 0.8,
-        rotate: isExiting ? (Math.random() > 0.5 ? 15 : -15) : 0,
-        transition: { duration: 0.3, ease: "easeInOut" }
+        rotate: Math.random() > 0.5 ? 15 : -15,
+        transition: { duration: 0.2, ease: "easeInOut" }
       }}
       animate={{
         y: offset * 8,
         scale: 1 - offset * 0.02,
-        opacity: 1 - offset * 0.1
+        opacity: isExiting ? 0 : 1 - offset * 0.1
       }}
       transition={{
         type: "spring",
