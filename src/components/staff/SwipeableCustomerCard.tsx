@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Box, VStack, HStack, Text, Heading, Badge } from '@chakra-ui/react';
-import { motion, PanInfo } from 'framer-motion';
+import { motion, PanInfo, AnimatePresence } from 'framer-motion';
 import type { Database } from '../../lib/supabase';
 
 const MotionBox = motion(Box);
@@ -26,6 +26,8 @@ export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
   zIndex,
   offset
 }) => {
+  const [isExiting, setIsExiting] = useState(false);
+
   const handleDragEnd = (event: any, info: PanInfo) => {
     if (!isTop) return;
 
@@ -33,15 +35,21 @@ export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
     const { x, y } = info.offset;
     
     if (Math.abs(x) > threshold && Math.abs(x) > Math.abs(y)) {
+      setIsExiting(true);
       if (x > 0) {
-        onSwipeRight();
+        setTimeout(() => onSwipeRight(), 200);
       } else {
-        onSwipeLeft();
+        setTimeout(() => onSwipeLeft(), 200);
       }
     } else if (y > threshold) {
-      onSwipeDown();
+      setIsExiting(true);
+      setTimeout(() => onSwipeDown(), 200);
     }
   };
+
+  if (isExiting) {
+    return null;
+  }
 
   return (
     <MotionBox
@@ -64,6 +72,14 @@ export const SwipeableCustomerCard: React.FC<SwipeableCustomerCardProps> = ({
         scale: 1.05,
         rotate: 5,
         boxShadow: '0 20px 30px rgba(0,0,0,0.2)'
+      }}
+      exit={{
+        x: isExiting ? (Math.random() > 0.5 ? 300 : -300) : 0,
+        y: isExiting ? -100 : 0,
+        opacity: 0,
+        scale: 0.8,
+        rotate: isExiting ? (Math.random() > 0.5 ? 15 : -15) : 0,
+        transition: { duration: 0.3, ease: "easeInOut" }
       }}
       animate={{
         y: offset * 8,

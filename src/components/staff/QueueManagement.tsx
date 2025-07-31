@@ -228,7 +228,7 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
               {waitingTickets.slice(0, 3).map((ticket, index) => (
                 <SwipeableCustomerCard
                   key={ticket.id}
